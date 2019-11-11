@@ -6,17 +6,14 @@ LD_FLAGS=`pkg-config --libs ompl`
 
 # The c++ compiler to invoke
 CXX=c++
-all: Project4Car Project4Pendulum
+all: FloppyNeedle
 
 clean:
 	rm -f *.o
-	rm -f Project4Car Project4Pendulum
+	rm -f FloppyNeedle
 
 %.o: src/%.cpp
 	$(CXX) -c $(CXX_FLAGS) $(INCLUDE_FLAGS) $< -o $@
 
-Project4Pendulum: Project4Pendulum.o RG-RRT.o
-	$(CXX) $(CXX_FLAGS) $(INCLUDE_FLAGS) -o $@ $^ $(LD_FLAGS)
-
-Project4Car: Project4Car.o CollisionChecking.o RG-RRT.o
+FloppyNeedle: FloppyNeedle.o CollisionChecking.o
 	$(CXX) $(CXX_FLAGS) $(INCLUDE_FLAGS) -o $@ $^ $(LD_FLAGS)
