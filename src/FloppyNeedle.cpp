@@ -44,8 +44,14 @@
         d = compound_state->as<ompl::base::DiscreteStateSpace::StateType>(2);
 
         auto control_data = control->as<ompl::control::DiscreteControlSpace::ControlType>();
+
+        // auto control_data = control->as<ompl::control::CompoundControlSpace::ControlType>();
+        // auto control_data_d = control_data->as<ompl::control::DiscreteControlSpace::ControlType>(2);
+
+        
         int direction = 1;
         if(control_data->value == 0){
+        // if(control_data_d->value == 0){
             direction = -1;
         }
 
@@ -53,6 +59,7 @@
         double new_y = r2->values[1] + r*sin(so2->value + direction * duration);
         double new_theta = so2->value + direction * d->value;
         double new_d = control_data->value;
+        // double new_d = control_data_d->value;
 
         auto result_compound_state = result->as<ompl::base::CompoundState>();
 
@@ -94,7 +101,7 @@ void makeBones(std::vector<Rectangle> &  obstacles )
 // This is our state validity checker for checking if our point robot is in collision
 bool isValidStatePoint(const ompl::control::SpaceInformation *si, const ompl::base::State *state, std::vector<Rectangle> &obstacles)
 {
-    // Cast the state to a real vector state
+    // Cast the state to a compound state
     auto compound_state = state->as<ompl::base::CompoundState>();
 
     const ompl::base::RealVectorStateSpace::StateType* r2;
@@ -122,36 +129,37 @@ ompl::control::SimpleSetupPtr createFloppy(std::vector<Rectangle> &  obstacles )
     // STATE SPACE SETUP
     ompl::base::StateSpacePtr r2so2d;
 
-    // Create R^1 component of the State Space (angular velocity omega)
+    // Create R^2 component of the State Space
     auto r2 = std::make_shared<ompl::base::RealVectorStateSpace>(2);
 
     // Set bounds on R^2
     ompl::base::RealVectorBounds r2_bounds(2);
 
-    r2_bounds.setLow(0, 0);  // x
-    r2_bounds.setHigh(0, 10); 
+    r2_bounds.setLow(0, 0.0);  // x
+    r2_bounds.setHigh(0, 10.0); 
 
-    r2_bounds.setLow(1, 0);  // y
-    r2_bounds.setHigh(1, 10); 
+    r2_bounds.setLow(1, 0.0);  // y
+    r2_bounds.setHigh(1, 10.0); 
 
-    auto so2 = std::make_shared<ompl::base::SO2StateSpace>();
+    r2->setBounds(r2_bounds);
 
-    auto d = std::make_shared<ompl::base::DiscreteStateSpace>(0, 1);
+    auto so2 = std::make_shared<ompl::base::SO2StateSpace>(); // theta
+
+    auto d = std::make_shared<ompl::base::DiscreteStateSpace>(0, 1); // direction
 
     // Create compound state space
     r2so2d =  r2+so2+d;    
 
     auto controlSpace = std::make_shared<ompl::control::DiscreteControlSpace>(r2so2d, 0, 1); // Take our state space plus two for control
+    // auto controlSpace = std::make_shared<ompl::control::CompoundControlSpace>(r2so2d);
 
     // Define a simple setup class
     ompl::control::SimpleSetup ss(controlSpace);
 
     // Return simple setup ptr
-    ompl::control::SimpleSetupPtr ssptr = std::make_shared<ompl::control::SimpleSetup>(ss); // have no idea if this is right lol, whats up with SimpleSetupPtr?
-    // ompl::control::SimpleSetupPtr ssptr(ss);
-    // ompl::control::SimpleSetupPtr ssptr;
+    ompl::control::SimpleSetupPtr ssptr = std::make_shared<ompl::control::SimpleSetup>(ss);
     
-        // set state validity checking for this space
+    // set state validity checking for this space
     ompl::control::SpaceInformation *si = ssptr->getSpaceInformation().get();
     ssptr->setStateValidityChecker([&ssptr, &obstacles](const ompl::base::State *state) { return isValidStatePoint( ssptr->getSpaceInformation().get(), state, obstacles); });
 
@@ -167,26 +175,35 @@ ompl::control::SimpleSetupPtr createFloppy(std::vector<Rectangle> &  obstacles )
     auto space  = ssptr->getStateSpace();
 
     std::cout<<"setting goal and end state"<<std::endl;
+
+
+
+
+
+
+
     // Create start state
     ompl::base::ScopedState<> start(space);
     start[0] = 0; // Initial x
     start[1] = 5; // Initial y
     start[2] = 0; // Initial th
-    start[3] = 0; // Initial vel
-
+    // start[3] = 0; // Initial vel
+    start->as<ompl::base::CompoundState>()->as<ompl::base::DiscreteStateSpace::StateType>(2)->value = 0;
 
     // Create goal state
     ompl::base::ScopedState<> goal(space);
     goal[0] = 7.5;  // Initial x
     goal[1] = 7.5; // Initial y
     goal[2] = 0; // Initial th
-    goal[3] = 0; // Initial vel
-
+    // goal[3] = 0; // Initial vel
+    goal->as<ompl::base::CompoundState>()->as<ompl::base::DiscreteStateSpace::StateType>(2)->value = 0;
+    
     std::cout<<"done setting goal and end state"<<std::endl;
 
 
     // set the start and goal states
     ssptr->setStartAndGoalStates(start, goal, 0.2);
+    
     
     return ssptr;
 }
@@ -205,6 +222,7 @@ void planFloppy(ompl::control::SimpleSetupPtr & ss)
     // attempt to solve the problem within one second of planning time
     ompl::base::PlannerStatus solved = ss->solve(100.0);
 
+    std::cout<<"got past solve()"<<std::endl;
 
     if (solved)
     {
