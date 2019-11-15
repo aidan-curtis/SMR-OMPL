@@ -16,9 +16,10 @@
 #include "CollisionChecking.h"
 #include <fstream>
 #include <cmath>
+#include <math.h>
 #include <ompl/control/planners/rrt/RRT.h>
 
-
+using namespace std;
 
  class FloppyNeedleStatePropagator : public ompl::control::StatePropagator
  {
@@ -49,17 +50,25 @@
         // auto control_data_d = control_data->as<ompl::control::DiscreteControlSpace::ControlType>(2);
 
         
-        int direction = 1;
+        double direction = -1;
         if(control_data->value == 0){
         // if(control_data_d->value == 0){
-            direction = -1;
+            direction = 1;
         }
 
-        double new_x = r2->values[0] + r*cos(so2->value + direction * duration);
-        double new_y = r2->values[1] + r*sin(so2->value + direction * duration);
-        double new_theta = so2->value + direction * d->value;
+
+        // cout<<"Old Propagate"<<endl;
+        // cout<<r2->values[0]<<endl;
+        // cout<<r2->values[1]<<endl;
+        // cout<<so2->value<<endl;
+        // cout<<direction<<endl;
+
+        double new_x = r2->values[0] + r*(cos(so2->value + direction * duration + control_data->value*M_PI)-cos(so2->value+ control_data->value*M_PI));
+        double new_y = r2->values[1] + r*(sin(so2->value + direction * duration+ control_data->value*M_PI)-sin(so2->value+ control_data->value*M_PI));
+        double new_theta = so2->value + direction * duration;
         double new_d = control_data->value;
-        // double new_d = control_data_d->value;
+
+        cout<<new_x<<","<<new_y<<","<<new_theta<<","<<new_d<<endl;
 
         auto result_compound_state = result->as<ompl::base::CompoundState>();
 
@@ -77,9 +86,56 @@
         result_so2->value = new_theta;
         result_d->value = new_d;
 
+
+        // auto debug_result_compound_state = result->as<ompl::base::CompoundState>();
+
+        // ompl::base::RealVectorStateSpace::StateType* debug_result_r2;
+        // debug_result_r2 = debug_result_compound_state->as<ompl::base::RealVectorStateSpace::StateType>(0);
+
+        // ompl::base::SO2StateSpace::StateType* debug_result_so2;
+        // debug_result_so2 = debug_result_compound_state->as<ompl::base::SO2StateSpace::StateType>(1);
+
+        // ompl::base::DiscreteStateSpace::StateType* debug_result_d;
+        // debug_result_d = debug_result_compound_state->as<ompl::base::DiscreteStateSpace::StateType>(2);
+
+        // cout<<"Other propagate"<<endl;
+        // cout<<debug_result_r2->values[0]<<endl;
+        // cout<<debug_result_r2->values[1]<<endl;
+        // cout<<debug_result_so2->value<<endl;
+        // cout<<debug_result_d->value<<endl;
+
     }
  };
  
+
+class Environment1Goal : public ompl::base::Goal
+{
+public:
+    Environment1Goal(const ompl::control::SpaceInformationPtr &si) : ompl::base::Goal(si)
+    {
+    }
+    virtual bool isSatisfied(const ompl::base::State *st) const
+    {
+        // perform any operations and return a truth value
+        auto compound_state = st->as<ompl::base::CompoundState>();
+
+        const ompl::base::RealVectorStateSpace::StateType* r2;
+        r2 = compound_state->as<ompl::base::RealVectorStateSpace::StateType>(0);
+
+        const ompl::base::SO2StateSpace::StateType* so2;
+        so2 = compound_state->as<ompl::base::SO2StateSpace::StateType>(1);
+
+        const ompl::base::DiscreteStateSpace::StateType* d;
+        d = compound_state->as<ompl::base::DiscreteStateSpace::StateType>(2);
+
+        double x = r2->values[0];
+        double y = r2->values[1];
+        double goal_distance = sqrt((x-7.5)*(x-7.5)+(y-7.5)*(y-7.5));
+        // cout<<goal_distance<<endl;
+        return goal_distance < 0.5;
+    }
+};
+
 
 void makeBones(std::vector<Rectangle> &  obstacles )
 {
@@ -174,10 +230,6 @@ ompl::control::SimpleSetupPtr createFloppy(std::vector<Rectangle> &  obstacles )
     // choice is what planner to use.
     auto space  = ssptr->getStateSpace();
 
-    std::cout<<"setting goal and end state"<<std::endl;
-
-
-
 
 
 
@@ -186,23 +238,14 @@ ompl::control::SimpleSetupPtr createFloppy(std::vector<Rectangle> &  obstacles )
     ompl::base::ScopedState<> start(space);
     start[0] = 0; // Initial x
     start[1] = 5; // Initial y
-    start[2] = 0; // Initial th
+    start[2] = -M_PI/2.0; // Initial th
     // start[3] = 0; // Initial vel
     start->as<ompl::base::CompoundState>()->as<ompl::base::DiscreteStateSpace::StateType>(2)->value = 0;
-
-    // Create goal state
-    ompl::base::ScopedState<> goal(space);
-    goal[0] = 7.5;  // Initial x
-    goal[1] = 7.5; // Initial y
-    goal[2] = 0; // Initial th
-    // goal[3] = 0; // Initial vel
-    goal->as<ompl::base::CompoundState>()->as<ompl::base::DiscreteStateSpace::StateType>(2)->value = 0;
-    
-    std::cout<<"done setting goal and end state"<<std::endl;
-
-
     // set the start and goal states
-    ssptr->setStartAndGoalStates(start, goal, 0.2);
+    ssptr->addStartState(start);
+    auto goal(std::make_shared<Environment1Goal>(ssptr->getSpaceInformation()));
+    ssptr->setGoal(goal);
+
     
     
     return ssptr;
