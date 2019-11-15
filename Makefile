@@ -15,5 +15,5 @@ clean:
 %.o: src/%.cpp
 	$(CXX) -c $(CXX_FLAGS) $(INCLUDE_FLAGS) $< -o $@
 
-FloppyNeedle: FloppyNeedle.o CollisionChecking.o
+FloppyNeedle: FloppyNeedle.o CollisionChecking.o SMR.o
 	$(CXX) $(CXX_FLAGS) $(INCLUDE_FLAGS) -o $@ $^ $(LD_FLAGS)

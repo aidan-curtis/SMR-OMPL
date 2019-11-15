@@ -7,26 +7,26 @@
 
 struct Rectangle
 {
-    // Coordinate of the lower left corner of the rectangle
-    double x, y;
-    // The width (x-axis extent) of the rectangle
-    double width;
-    // The height (y-axis extent) of the rectangle
-    double height;
+	// Coordinate of the lower left corner of the rectangle
+	double x, y;
+	// The width (x-axis extent) of the rectangle
+	double width;
+	// The height (y-axis extent) of the rectangle
+	double height;
 };
 
 // Definition of our robot.
 struct Robot
 {
-    // Type = {c,s,p}.  Circle, square, or point robot
-    char type;
-    // The location of the robot in the environment
-    double x, y;
-    // The orientation of the square robot.  Undefined for point or circle robot
-    double theta;
-    // The length of a side of the square robot or the radius of the circle robot
-    // Undefined for the point robot.
-    double length;
+	// Type = {c,s,p}.  Circle, square, or point robot
+	char type;
+	// The location of the robot in the environment
+	double x, y;
+	// The orientation of the square robot.  Undefined for point or circle robot
+	double theta;
+	// The length of a side of the square robot or the radius of the circle robot
+	// Undefined for the point robot.
+	double length;
 };
 
 // Intersect the point (x,y) with the set of rectangles. If the point lies
@@ -45,6 +45,6 @@ bool isValidSquare(double x, double y, double theta, double sideLength, const st
 // Custom debugging/development code. Takes the list of robots, the list of
 // obstacles, and whether or not each configuation should be valid or not.
 void debugMode(const std::vector<Robot> &robots, const std::vector<Rectangle> &obstacles,
-               const std::vector<bool> &valid);
+			   const std::vector<bool> &valid);
 
 #endif
