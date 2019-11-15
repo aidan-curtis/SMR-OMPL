@@ -1,2 +1,4 @@
 .vscode
-FloppyNeedle*
+FloppyNeedle
+CollisionChecking.o
+FloppyNeedle.o
