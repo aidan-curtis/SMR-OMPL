@@ -71,7 +71,7 @@ namespace ompl
                 if (nn_ && nn_->size() != 0)
                     OMPL_WARN("Calling setNearestNeighbors will clear all states.");
                 clear();
-                nn_ = std::make_shared<NN<Motion *>>();
+                nn_ = std::make_shared<NN<Node *>>();
                 setup();
             }
 
@@ -81,18 +81,18 @@ namespace ompl
             /** \brief Representation of a motion
                 This only contains pointers to parent motions as we
                 only need to go backwards in the tree. */
-            class Motion
+            class Node
             {
             public:
-                Motion() = default;
+                Node() = default;
 
                 /** \brief Constructor that allocates memory for the state and the control */
-                Motion(const SpaceInformation *si)
+                Node(const SpaceInformation *si)
                   : state(si->allocState()), control(si->allocControl())
                 {
                 }
 
-                ~Motion() = default;
+                ~Node() = default;
 
                 /** \brief The state contained by the motion */
                 base::State *state{nullptr};
@@ -104,17 +104,17 @@ namespace ompl
                 unsigned int steps{0};
 
                 /** \brief The parent motion in the exploration tree */
-                Motion *parent{nullptr};
+                Node *parent{nullptr};
 
                 // Reachable set R(q)
-                std::vector<Motion*> ReachableSet;
+                std::vector<Node*> ReachableSet;
             };
 
             /** \brief Free the memory allocated by this planner */
             void freeMemory();
 
             /** \brief Compute distance between motions (actually distance between contained states) */
-            double distanceFunction(const Motion *a, const Motion *b) const
+            double distanceFunction(const Node *a, const Node *b) const
             {
                 return si_->distance(a->state, b->state);
             }
@@ -122,14 +122,11 @@ namespace ompl
             /** \brief State sampler */
             base::StateSamplerPtr sampler_;
 
-            /** \brief Control sampler */
-            DirectedControlSamplerPtr controlSampler_;
-
             /** \brief The base::SpaceInformation cast as control::SpaceInformation, for convenience */
             const SpaceInformation *siC_;
 
             /** \brief A nearest-neighbors datastructure containing the tree of motions */
-            std::shared_ptr<NearestNeighbors<Motion *>> nn_;
+            std::shared_ptr<NearestNeighbors<Node *>> nn_;
 
             /** \brief The fraction of time the goal is picked as the state to expand towards (if such a state is
              * available) */
@@ -142,11 +139,13 @@ namespace ompl
             RNG rng_;
 
             /** \brief The most recent goal motion.  Used for PlannerData computation */
-            Motion *lastGoalMotion_{nullptr};
+            Node *lastGoalNode_{nullptr};
 
 
-            void GenerateReachableSet(Motion* motion);
-            int selectReachableMotion(const Motion* qnear, const Motion* qrand);
+            int selectReachableNode(const Node* qnear, const Node* qrand);
+            void BuildSMR(std::vector<std::pair<Node*, double>> &transitions);
+            void GetTransisions(Node *start_state, Control *control, int num_transitions, std::vector<std::pair<Node*, double> > &transitions);
+
 
         };
     }

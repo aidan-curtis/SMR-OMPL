@@ -17,7 +17,6 @@
 #include <fstream>
 #include <cmath>
 #include <math.h>
-#include <ompl/control/planners/rrt/RRT.h>
 #include "SMR.h"
 
 using namespace std;
@@ -260,7 +259,7 @@ ompl::control::SimpleSetupPtr createFloppy(std::vector<Rectangle> &  obstacles )
 void planFloppy(ompl::control::SimpleSetupPtr & ss)
 {    
 
-	ompl::base::PlannerPtr planner(new ompl::control::PRM(ss->getSpaceInformation()));
+	ompl::base::PlannerPtr planner(new ompl::control::SMR(ss->getSpaceInformation()));
 	ss->setPlanner(planner);
    
 	// attempt to solve the problem within one second of planning time

@@ -1,4 +1,4 @@
-CXX_FLAGS=-std=c++11 -O2 -Wall -Wextra
+CXX_FLAGS=-std=c++11 -Wall -Wextra -g
 
 INCLUDE_FLAGS=`pkg-config --cflags ompl eigen3`
 # Linker options
