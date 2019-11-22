@@ -107,7 +107,10 @@ namespace ompl
                 Node *parent{nullptr};
 
                 // Reachable set R(q)
-                std::vector<Node*> ReachableSet;
+                std::vector<Node*> state_control_0;
+
+                // Reachable set R(q)
+                std::vector<Node*> state_control_1;
             };
 
             /** \brief Free the memory allocated by this planner */
@@ -143,8 +146,8 @@ namespace ompl
 
 
             int selectReachableNode(const Node* qnear, const Node* qrand);
-            void BuildSMR(std::vector<std::pair<Node*, double>> &transitions);
-            void GetTransisions(Node *start_state, Control *control, int num_transitions, std::vector<std::pair<Node*, double> > &transitions);
+            void BuildSMR();
+            void GetTransisions(Node *start_state, Control *control, int num_transitions);
 
 
         };

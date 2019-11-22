@@ -68,7 +68,8 @@ using namespace std;
 		double new_theta = so2->value + direction * duration;
 		double new_d = control_data->value;
 
-		cout<<new_x<<","<<new_y<<","<<new_theta<<","<<new_d<<endl;
+		// Open if you want to see all the propagation steps
+		// cout<<new_x<<","<<new_y<<","<<new_theta<<","<<new_d<<endl;
 
 		auto result_compound_state = result->as<ompl::base::CompoundState>();
 

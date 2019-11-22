@@ -8,6 +8,8 @@
 #include "ompl/base/goals/GoalSampleableRegion.h"
 #include "ompl/tools/config/SelfConfig.h"
 #include <ompl/control/spaces/RealVectorControlSpace.h>
+#include <ompl/control/spaces/DiscreteControlSpace.h>
+
 #include <limits>
 
 ompl::control::SMR::SMR(const SpaceInformationPtr &si) : base::Planner(si, "SMR")
@@ -63,10 +65,7 @@ void ompl::control::SMR::freeMemory()
 }
 
 
-
-
-
-void ompl::control::SMR::GetTransisions(Node *start_state, Control *control, int num_transitions, std::vector<std::pair<Node*, double> > &transitions){
+void ompl::control::SMR::GetTransisions(Node *start_state, Control *control, int num_transitions){
 	// create an empty list of nodes (R)
 	for (int m = 0; m < num_transitions; m += 1){
 		ompl::base::State *prop_state = si_->allocState();
@@ -74,14 +73,16 @@ void ompl::control::SMR::GetTransisions(Node *start_state, Control *control, int
 		auto *new_node = new Node(siC_);
 		new_node->state = prop_state;
 		Node *neighbor = nn_->nearest(new_node);
-		std::pair<Node*, double> new_transition= std::make_pair (neighbor, (1/num_transitions));
-		transitions.push_back(new_transition);
+		if(control->as<ompl::control::DiscreteControlSpace::ControlType>()->value == 0) {
+			start_state->state_control_0.push_back(neighbor);
+		} else {
+			start_state->state_control_1.push_back(neighbor);
+		}
 	}
 
 }
-void ompl::control::SMR::BuildSMR(std::vector<std::pair<Node*, double>> &transitions){
-	int NUM_SAMPLES = 10000;
-	int NUM_ACTIONS = 2;
+void ompl::control::SMR::BuildSMR(){
+	int NUM_SAMPLES = 1000;
 	int M = 20;
 	for (int i = 0; i < NUM_SAMPLES; i+=1){
 		// Uniformly sample a state and add it to the data structure
@@ -95,16 +96,16 @@ void ompl::control::SMR::BuildSMR(std::vector<std::pair<Node*, double>> &transit
 	std::vector<Node *> state_list;
 	nn_->list(state_list);
 	for (int i = 0; i < int(state_list.size()); i+=1) {
-		for (int action = 0; action < NUM_ACTIONS; action+=1) {
-			Control *icontrol;
-			siC_->nullControl(icontrol);
-			double *u = icontrol->as<ompl::control::RealVectorControlSpace::ControlType>()->values; // cast control to desired type
-			u[0] = action;
-			GetTransisions(state_list[i], icontrol, M, transitions);
+
+			// std::cout<<r2->values[0]<<std::endl;
+			// std::cout<<r2->values[1]<<std::endl;
+			auto icontrol = state_list[i]->control->as<ompl::control::DiscreteControlSpace::ControlType>(); // cast control to desired type
+			icontrol->value = 0;
+			GetTransisions(state_list[i], state_list[i]->control, M);
+
 			// for (double t = 0; t < transitions.size(); t+=1) {
 				// TODO: What was the point of this again?				
 			// }
-		}
 	}
 }
 
@@ -115,7 +116,6 @@ ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminati
 	checkValidity();
 	base::Goal *goal = pdef_->getGoal().get();
 	auto *goal_s = dynamic_cast<base::GoalSampleableRegion *>(goal);
-
 	while (const base::State *st = pis_.nextStart())
 	{
 		auto *node = new Node(siC_);
@@ -132,13 +132,10 @@ ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminati
 
 	if (!sampler_)
 		sampler_ = si_->allocStateSampler();
-
-	std::vector<std::pair<Node*, double>> transitions;
-	BuildSMR(transitions);
-
+	std::cout<<"Starting to build smr"<<std::endl;
+	BuildSMR();
+	std::cout<<"Done building smr"<<std::endl;
 	OMPL_INFORM("%s: Starting planning with %u states already in datastructure", getName().c_str(), nn_->size());
-
-
 	return {false, false};
 }
 
