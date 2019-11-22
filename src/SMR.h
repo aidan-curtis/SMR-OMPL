@@ -146,7 +146,7 @@ namespace ompl
 
 
             int selectReachableNode(const Node* qnear, const Node* qrand);
-            void BuildSMR();
+            void BuildSMR(int num_samples, int num_transitions);
             void GetTransisions(Node *start_state, Control *control, int num_transitions);
 
 
