@@ -14,6 +14,7 @@
 #include <ompl/tools/benchmark/Benchmark.h>
 // The collision checker produced in project 2
 #include "CollisionChecking.h"
+#include <random>
 #include <fstream>
 #include <cmath>
 #include <math.h>
@@ -31,7 +32,16 @@ using namespace std;
 
 	void propagate(const ompl::base::State *state, const ompl::control::Control* control, const double duration, ompl::base::State *result) const override
 	{
+
 		double r = 2.5; // add gaussian noise later
+		std::normal_distribution<double> r_distribution(0,0.3);
+		std::normal_distribution<double> delta_distribution(0,0.3);
+		std::default_random_engine generator;
+
+		double d_samp = delta_distribution(generator);
+		double r_samp = r_distribution(generator);
+		double new_duration = duration+d_samp;
+		r += r_samp;
 
 		auto compound_state = state->as<ompl::base::CompoundState>();
 
@@ -63,9 +73,9 @@ using namespace std;
 		// cout<<so2->value<<endl;
 		// cout<<direction<<endl;
 
-		double new_x = r2->values[0] + r*(cos(so2->value + direction * duration + control_data->value*M_PI)-cos(so2->value+ control_data->value*M_PI));
-		double new_y = r2->values[1] + r*(sin(so2->value + direction * duration+ control_data->value*M_PI)-sin(so2->value+ control_data->value*M_PI));
-		double new_theta = so2->value + direction * duration;
+		double new_x = r2->values[0] + r*(cos(so2->value + direction * new_duration + control_data->value*M_PI)-cos(so2->value+ control_data->value*M_PI));
+		double new_y = r2->values[1] + r*(sin(so2->value + direction * new_duration+ control_data->value*M_PI)-sin(so2->value+ control_data->value*M_PI));
+		double new_theta = so2->value + direction * new_duration;
 		double new_d = control_data->value;
 
 		// Open if you want to see all the propagation steps
@@ -86,6 +96,8 @@ using namespace std;
 		result_r2->values[1] = new_y;
 		result_so2->value = new_theta;
 		result_d->value = new_d;
+
+
 
 
 		// auto debug_result_compound_state = result->as<ompl::base::CompoundState>();
