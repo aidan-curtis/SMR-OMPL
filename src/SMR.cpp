@@ -134,7 +134,7 @@ void ompl::control::SMR::BuildSMR(int num_samples, int num_transitions){
 ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminationCondition &ptc)
 {
 
-	int NUM_SAMPLES = 10000;
+	int NUM_SAMPLES = 1000;
 	int NUM_TRANSITIONS = 20;
 	double dist = 0.1;
 	checkValidity();
@@ -169,9 +169,11 @@ ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminati
 		if(goal->isSatisfied(state_list[i]->state, &dist)){
 			R.insert({state_list[i], 1.0});
 			values.insert({state_list[i], 1.0});
+			values_prime.insert({state_list[i], 1.0});
 		} else {
 			R.insert({state_list[i], 0.0});
 			values.insert({state_list[i], 0.0});
+			values_prime.insert({state_list[i], 0.0});
 		}
 	}
 
@@ -223,9 +225,12 @@ ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminati
 					change = true;
 					//update the map
 					// std::cout << "got here"<<std::endl;
-					for (auto itr = values.find(state_list[i]); itr != values.end(); itr++){
+					for (auto itr = values_prime.find(state_list[i]); itr != values_prime.end(); itr++){
+						// std::cout << "got here2"<<std::endl;
 						values_prime.erase(itr);
+						// std::cout << "got here3"<<std::endl;
 						values_prime.insert({state_list[i], new_value});	
+						// std::cout << "got here4"<<std::endl;
 						break;
 					}
 				}
@@ -233,6 +238,7 @@ ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminati
 		}
 		values = values_prime;
 		iteration+=1;
+		// std::cout << "got here5"<<std::endl;
 	}
 
 	for (int i = 0; i < int(state_list.size()); i+=1){
