@@ -168,10 +168,10 @@ ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminati
 	for (int i = 0; i < int(state_list.size()); i+=1){
 		if(goal->isSatisfied(state_list[i]->state, &dist)){
 			R.insert({state_list[i], 1.0});
-			values_prime.insert({state_list[i], 1.0});
+			values.insert({state_list[i], 1.0});
 		} else {
 			R.insert({state_list[i], 0.0});
-			values_prime.insert({state_list[i], 0.0});
+			values.insert({state_list[i], 0.0});
 		}
 	}
 
@@ -218,7 +218,7 @@ ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminati
 				}
 
 
-				// std::cout<<old_value<<"-->"<<new_value<<std::endl;
+				std::cout<<old_value<<"-->"<<new_value<<std::endl;
 				if(new_value != old_value){
 					change = true;
 					//update the map
