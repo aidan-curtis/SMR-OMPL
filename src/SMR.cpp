@@ -134,7 +134,7 @@ void ompl::control::SMR::BuildSMR(int num_samples, int num_transitions){
 ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminationCondition &ptc)
 {
 
-	int NUM_SAMPLES = 50000;
+	int NUM_SAMPLES = 10000;
 	int NUM_TRANSITIONS = 20;
 	double dist = 0.1;
 	checkValidity();

@@ -34,14 +34,16 @@ using namespace std;
 	{
 
 		double r = 2.5; // add gaussian noise later
+		unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
 		std::normal_distribution<double> r_distribution(0,0.3);
 		std::normal_distribution<double> delta_distribution(0,0.3);
-		std::default_random_engine generator;
+		std::default_random_engine generator(seed);
 
 		double d_samp = delta_distribution(generator);
 		double r_samp = r_distribution(generator);
 		double new_duration = duration+d_samp;
 		r += r_samp;
+		// cout<< r_samp<<", "<<d_samp<<endl;
 
 		auto compound_state = state->as<ompl::base::CompoundState>();
 
