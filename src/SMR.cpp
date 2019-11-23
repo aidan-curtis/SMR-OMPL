@@ -134,7 +134,7 @@ void ompl::control::SMR::BuildSMR(int num_samples, int num_transitions){
 ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminationCondition &ptc)
 {
 
-	int NUM_SAMPLES = 1000;
+	int NUM_SAMPLES = 10000;
 	int NUM_TRANSITIONS = 20;
 	double dist = 0.1;
 	checkValidity();
@@ -187,7 +187,7 @@ ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminati
 			if(!goal->isSatisfied(state_list[i]->state, &dist)){
 				double new_value = 0;
 				for (int new_state_index = 0; new_state_index < int((state_list[i]->state_control_0).size()); new_state_index++) {
-					for (auto itr = values_prime.find(state_list[i]->state_control_0[new_state_index]); itr != values_prime.end(); itr++){
+					for (auto itr = values.find(state_list[i]->state_control_0[new_state_index]); itr != values.end(); itr++){
 						double add_transition_value = double(itr->second)*(1.0/double(NUM_TRANSITIONS));
 						new_value += add_transition_value;
 						// std::cout << "blah1: " << new_value  << std::endl;
@@ -196,7 +196,7 @@ ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminati
 
 				}
 				for (int new_state_index = 0; new_state_index < int((state_list[i]->state_control_1).size()); new_state_index++) {
-					for (auto itr = values_prime.find(state_list[i]->state_control_1[new_state_index]); itr != values_prime.end(); itr++){
+					for (auto itr = values.find(state_list[i]->state_control_1[new_state_index]); itr != values.end(); itr++){
 						double add_transition_value = double(itr->second)*(1.0/double(NUM_TRANSITIONS));
 						new_value += add_transition_value;
 						// std::cout << "blah:2 " << new_value  << std::endl;
@@ -211,7 +211,7 @@ ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminati
 					break;
 				}
 				double old_value = 0;
-				for (auto itr = values_prime.find(state_list[i]); itr != values_prime.end(); itr++){
+				for (auto itr = values.find(state_list[i]); itr != values.end(); itr++){
 					old_value = double(itr->second);
 					// std::cout << "blah4: " << new_value  << std::endl;
 					break;
@@ -223,7 +223,7 @@ ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminati
 					change = true;
 					//update the map
 					// std::cout << "got here"<<std::endl;
-					for (auto itr = values_prime.find(state_list[i]); itr != values_prime.end(); itr++){
+					for (auto itr = values.find(state_list[i]); itr != values.end(); itr++){
 						values_prime.erase(itr);
 						values_prime.insert({state_list[i], new_value});	
 						break;
@@ -234,7 +234,6 @@ ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminati
 		values = values_prime;
 		iteration+=1;
 	}
-	
 
 	for (int i = 0; i < int(state_list.size()); i+=1){
 		double val = 0;
