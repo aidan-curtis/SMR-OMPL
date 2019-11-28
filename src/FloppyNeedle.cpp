@@ -35,8 +35,8 @@ using namespace std;
 
 		double r = 2.5; // add gaussian noise later
 		unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-		std::normal_distribution<double> r_distribution(0,2);
-		std::normal_distribution<double> delta_distribution(0,0);
+		std::normal_distribution<double> r_distribution(0, 0.5);
+		std::normal_distribution<double> delta_distribution(0.5, 0.1);
 		std::default_random_engine generator(seed);
 
 		double d_samp = delta_distribution(generator);

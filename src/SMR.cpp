@@ -12,7 +12,7 @@
 #include <ompl/base/spaces/RealVectorStateSpace.h>
 #include <ompl/base/spaces/SO2StateSpace.h>
 #include <ompl/base/spaces/DiscreteStateSpace.h>
-
+#include <fstream>
 #include <limits>
 using namespace std;
 
@@ -67,10 +67,12 @@ void ompl::control::SMR::freeMemory()
 		}
 	}
 }
-
+// std::ofstream fout("sampled_points.txt");
 
 void ompl::control::SMR::GetTransisions(Node *start_state, Control *control, int num_transitions){
 	// create an empty list of nodes (R)
+	
+
 	for (int m = 0; m < num_transitions; m += 1){
 		ompl::base::State *prop_state = si_->allocState();
 		auto non_collision = siC_->propagateWhileValid(start_state->state, control, 1, prop_state);
@@ -86,14 +88,21 @@ void ompl::control::SMR::GetTransisions(Node *start_state, Control *control, int
 		const ompl::base::DiscreteStateSpace::StateType* d;
 		d = compound_state->as<ompl::base::DiscreteStateSpace::StateType>(2);
 
+		
+		
+		
+
 		if(control->as<ompl::control::DiscreteControlSpace::ControlType>()->value == 0) {
 			cout<<r2->values[0]<<","<<r2->values[1]<<","<<0<<endl;
+			// fout<<r2->values[0]<<","<<r2->values[1]<<","<<0<<endl;
 			start_state->state_control_0.push_back(neighbor);
 		} else {
 			cout<<r2->values[0]<<","<<r2->values[1]<<","<<1<<endl;
+			// fout<<r2->values[0]<<","<<r2->values[1]<<","<<1<<endl;
 			start_state->state_control_1.push_back(neighbor);
 		}
 	}
+	
 
 }
 void ompl::control::SMR::BuildSMR(int num_samples, int num_transitions){
@@ -105,7 +114,7 @@ void ompl::control::SMR::BuildSMR(int num_samples, int num_transitions){
 		new_node->state = new_state;
 		nn_->add(new_node);
 	}
-
+	
 	std::vector<Node *> state_list;
 	nn_->list(state_list);
 	for (int i = 0; i < int(state_list.size()); i+=1) {
@@ -114,8 +123,9 @@ void ompl::control::SMR::BuildSMR(int num_samples, int num_transitions){
 			GetTransisions(state_list[i], state_list[i]->control, num_transitions);
 			icontrol->value = 1;
 			GetTransisions(state_list[i], state_list[i]->control, num_transitions);
-			exit(1);
+			// exit(1);
 	}
+	// fout.close();
 }
 
 
@@ -124,7 +134,7 @@ ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminati
 {
 
 	int NUM_SAMPLES = 1000;
-	int NUM_TRANSITIONS = 100;
+	int NUM_TRANSITIONS = 20;
 	double dist = 0.1;
 	checkValidity();
 	base::Goal *goal = pdef_->getGoal().get();
@@ -172,15 +182,21 @@ ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminati
 	while(change){
 		change = false;
 		// Need to recalculate the value for every state. Loop through each state
+
+		
+				
 		for (int i = 0; i < int(state_list.size()); i+=1){
 			// For this state that we are iterating over, we need to examine it's transitions
 			// Action 0 transitions
 			if(!goal->isSatisfied(state_list[i]->state, &dist)){
 				double new_value = 0;
+				double new_value_0 = 0;
+				double new_value_1 = 0;
+
 				for (int new_state_index = 0; new_state_index < int((state_list[i]->state_control_0).size()); new_state_index++) {
 					for (auto itr = values.find(state_list[i]->state_control_0[new_state_index]); itr != values.end(); itr++){
 						double add_transition_value = double(itr->second)*(1.0/double(NUM_TRANSITIONS));
-						new_value += add_transition_value;
+						new_value_0 += add_transition_value;
 						// std::cout << "blah1: " << new_value  << std::endl;
 						break;
 					}
@@ -189,7 +205,7 @@ ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminati
 				for (int new_state_index = 0; new_state_index < int((state_list[i]->state_control_1).size()); new_state_index++) {
 					for (auto itr = values.find(state_list[i]->state_control_1[new_state_index]); itr != values.end(); itr++){
 						double add_transition_value = double(itr->second)*(1.0/double(NUM_TRANSITIONS));
-						new_value += add_transition_value;
+						new_value_1 += add_transition_value;
 						// std::cout << "blah:2 " << new_value  << std::endl;
 						break;
 					}
@@ -197,7 +213,8 @@ ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminati
 
 				// Action 1 transitions
 				for (auto itr = R.find(state_list[i]); itr != R.end(); itr++){
-					new_value += double(itr->second);
+					new_value_0 += double(itr->second);
+					new_value_1 += double(itr->second);
 					// std::cout << "blah3: " << new_value  << std::endl; YES
 					break;
 				}
@@ -206,6 +223,12 @@ ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminati
 					old_value = double(itr->second);
 					// std::cout << "blah4: " << new_value  << std::endl;
 					break;
+				}
+
+				if (new_value_0 > new_value_1) {
+					new_value = new_value_0;
+				} else {
+					new_value = new_value_1;
 				}
 
 
@@ -230,12 +253,14 @@ ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminati
 		// std::cout << "got here5"<<std::endl;
 	}
 
+	
 	for (int i = 0; i < int(state_list.size()); i+=1){
 		double val = 0;
 		for (auto itr = values.find(state_list[i]); itr != values.end(); itr++){
 			val = double(itr->second);
 			break;
 		}
+
 
 		auto compound_state = state_list[i]->state->as<ompl::base::CompoundState>();
 
