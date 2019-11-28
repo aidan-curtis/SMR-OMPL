@@ -1,7 +1,7 @@
 ///////////////////////////////////////
 // COMP/ELEC/MECH 450/550
 // Project 4
-// Authors: Aidan Curtis & Patrick Han
+// Authors:  
 //////////////////////////////////////
 
 #include "SMR.h"
@@ -71,9 +71,22 @@ void ompl::control::SMR::freeMemory()
 
 void ompl::control::SMR::GetTransisions(Node *start_state, Control *control, int num_transitions){
 	// create an empty list of nodes (R)
+	int num_successful_propagations = 0;
+
 	for (int m = 0; m < num_transitions; m += 1){
 		ompl::base::State *prop_state = si_->allocState();
-		siC_->propagate(start_state->state, control, 3, prop_state);
+
+		// siC_->propagate(start_state->state, control, 3, prop_state);
+		int collide_flag = siC_->propagateWhileValid(start_state->state, control, 3, prop_state);
+		
+
+
+		if (collide_flag == 3) { // If the propagation causes a collision
+			num_successful_propagations += 1;
+		}
+		// else {
+		// 	cout << "no collide while propagating, yay!" << endl;
+		// }
 		auto *new_node = new Node(siC_);
 		new_node->state = prop_state;
 
@@ -101,6 +114,12 @@ void ompl::control::SMR::GetTransisions(Node *start_state, Control *control, int
 		// cout<<so2->value<<endl;
 
 		Node *neighbor = nn_->nearest(new_node);
+		// cout << "Calculated transition probability:" << endl;
+		// cout << num_successful_propagations << endl;
+		// cout << num_transitions << endl;
+		// cout << num_successful_propagations/(double)num_transitions << endl;
+		neighbor->transition_probability = num_successful_propagations/(double)num_transitions;
+		
 
 		if(control->as<ompl::control::DiscreteControlSpace::ControlType>()->value == 0) {
 			start_state->state_control_0.push_back(neighbor);
@@ -108,6 +127,7 @@ void ompl::control::SMR::GetTransisions(Node *start_state, Control *control, int
 			start_state->state_control_1.push_back(neighbor);
 		}
 	}
+	// cout << num_successful_propagations << endl;
 
 }
 void ompl::control::SMR::BuildSMR(int num_samples, int num_transitions){
@@ -124,7 +144,15 @@ void ompl::control::SMR::BuildSMR(int num_samples, int num_transitions){
 	nn_->list(state_list);
 	for (int i = 0; i < int(state_list.size()); i+=1) {
 			auto icontrol = state_list[i]->control->as<ompl::control::DiscreteControlSpace::ControlType>(); // cast control to desired type
-			icontrol->value = 0;
+			
+			// icontrol->value = 0;
+			if ( (i % 2) == 0) { // propagate both 0 and 1 states?
+				icontrol->value = 0;
+			} else {
+				icontrol->value = 1;
+			}
+
+
 			GetTransisions(state_list[i], state_list[i]->control, num_transitions);
 	}
 }
@@ -134,7 +162,7 @@ void ompl::control::SMR::BuildSMR(int num_samples, int num_transitions){
 ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminationCondition &ptc)
 {
 
-	int NUM_SAMPLES = 1000;
+	int NUM_SAMPLES = 5000;
 	int NUM_TRANSITIONS = 20;
 	double dist = 0.1;
 	checkValidity();
@@ -157,6 +185,7 @@ ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminati
 	if (!sampler_)
 		sampler_ = si_->allocStateSampler();
 	BuildSMR(NUM_SAMPLES, NUM_TRANSITIONS);
+	cout << "Finished BuildSMR" << endl;
 
 	// Create the values/rewards and init them to zero
 	std::vector<Node *> state_list;
@@ -187,11 +216,24 @@ ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminati
 			// For this state that we are iterating over, we need to examine it's transitions
 			// Action 0 transitions
 			if(!goal->isSatisfied(state_list[i]->state, &dist)){
-				double new_value = 0;
+				double new_value_0 = 0; // Candidate new value for action 0
+				double new_value_1 = 0; // Candidate new value for action 1
+
+				// cout << "state_control_1 size:" << endl;
+				// cout << int((state_list[i]->state_control_1).size()) << endl;
+				// cout << "state_control_0 size:" << endl;
+				// cout << int((state_list[i]->state_control_0).size()) << endl;
+
 				for (int new_state_index = 0; new_state_index < int((state_list[i]->state_control_0).size()); new_state_index++) {
 					for (auto itr = values.find(state_list[i]->state_control_0[new_state_index]); itr != values.end(); itr++){
-						double add_transition_value = double(itr->second)*(1.0/double(NUM_TRANSITIONS));
-						new_value += add_transition_value;
+						
+						double P_0 = state_list[i]->state_control_0[new_state_index]->transition_probability;
+
+						// double add_transition_value = double(itr->second)*(1.0/double(NUM_TRANSITIONS));
+						// cout << P_0 << endl;
+						double add_transition_value = double(itr->second)*P_0;
+
+						new_value_0 += add_transition_value;
 						// std::cout << "blah1: " << new_value  << std::endl;
 						break;
 					}
@@ -199,8 +241,13 @@ ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminati
 				}
 				for (int new_state_index = 0; new_state_index < int((state_list[i]->state_control_1).size()); new_state_index++) {
 					for (auto itr = values.find(state_list[i]->state_control_1[new_state_index]); itr != values.end(); itr++){
-						double add_transition_value = double(itr->second)*(1.0/double(NUM_TRANSITIONS));
-						new_value += add_transition_value;
+
+						double P_1 = state_list[i]->state_control_1[new_state_index]->transition_probability;
+
+						// double add_transition_value = double(itr->second)*(1.0/double(NUM_TRANSITIONS));
+						double add_transition_value = double(itr->second)*P_1;
+
+						new_value_1 += add_transition_value;
 						// std::cout << "blah:2 " << new_value  << std::endl;
 						break;
 					}
@@ -208,7 +255,10 @@ ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminati
 
 				// Action 1 transitions
 				for (auto itr = R.find(state_list[i]); itr != R.end(); itr++){
-					new_value += double(itr->second);
+					cout << "BLAH" << endl;
+					cout << itr->second << endl;
+					new_value_0 += double(itr->second);
+					new_value_1 += double(itr->second);
 					// std::cout << "blah3: " << new_value  << std::endl; YES
 					break;
 				}
@@ -219,8 +269,17 @@ ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminati
 					break;
 				}
 
+				double new_value; // Max of the candidate new values
 
-				std::cout<<old_value<<"-->"<<new_value<<std::endl;
+				if ( new_value_0 > new_value_1 ) {
+					new_value = new_value_0;
+				}
+				else {
+					new_value = new_value_1;
+				}
+
+
+				// std::cout<<old_value<<"-->"<<new_value<<std::endl;
 				if(new_value != old_value){
 					change = true;
 					//update the map
