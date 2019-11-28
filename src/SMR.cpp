@@ -73,38 +73,24 @@ void ompl::control::SMR::GetTransisions(Node *start_state, Control *control, int
 	// create an empty list of nodes (R)
 	for (int m = 0; m < num_transitions; m += 1){
 		ompl::base::State *prop_state = si_->allocState();
-		siC_->propagate(start_state->state, control, 3, prop_state);
+		auto non_collision = siC_->propagateWhileValid(start_state->state, control, 1, prop_state);
 		auto *new_node = new Node(siC_);
 		new_node->state = prop_state;
 
-		// Cast the state to a compound state
-		// auto compound_state = start_state->state->as<ompl::base::CompoundState>();
-		// const ompl::base::RealVectorStateSpace::StateType* r2;
-		// r2 = compound_state->as<ompl::base::RealVectorStateSpace::StateType>(0);
-		// const ompl::base::SO2StateSpace::StateType* so2;
-		// so2 = compound_state->as<ompl::base::SO2StateSpace::StateType>(1);
-		// const ompl::base::DiscreteStateSpace::StateType* d;
-		// d = compound_state->as<ompl::base::DiscreteStateSpace::StateType>(2);
-		// cout<<"Old Propagate"<<endl;
-		// cout<<r2->values[0]<<endl;
-		// cout<<r2->values[1]<<endl;
-		// cout<<so2->value<<endl;
-
-		// // Cast the state to a compound state
-		// compound_state = prop_state->as<ompl::base::CompoundState>();
-		// r2 = compound_state->as<ompl::base::RealVectorStateSpace::StateType>(0);
-		// so2 = compound_state->as<ompl::base::SO2StateSpace::StateType>(1);
-		// d = compound_state->as<ompl::base::DiscreteStateSpace::StateType>(2);
-		// cout<<"New Propagate"<<endl;
-		// cout<<r2->values[0]<<endl;
-		// cout<<r2->values[1]<<endl;
-		// cout<<so2->value<<endl;
-
 		Node *neighbor = nn_->nearest(new_node);
+		auto compound_state = new_node->state->as<ompl::base::CompoundState>();
+		const ompl::base::RealVectorStateSpace::StateType* r2;
+		r2 = compound_state->as<ompl::base::RealVectorStateSpace::StateType>(0);
+		const ompl::base::SO2StateSpace::StateType* so2;
+		so2 = compound_state->as<ompl::base::SO2StateSpace::StateType>(1);
+		const ompl::base::DiscreteStateSpace::StateType* d;
+		d = compound_state->as<ompl::base::DiscreteStateSpace::StateType>(2);
 
 		if(control->as<ompl::control::DiscreteControlSpace::ControlType>()->value == 0) {
+			cout<<r2->values[0]<<","<<r2->values[1]<<","<<0<<endl;
 			start_state->state_control_0.push_back(neighbor);
 		} else {
+			cout<<r2->values[0]<<","<<r2->values[1]<<","<<1<<endl;
 			start_state->state_control_1.push_back(neighbor);
 		}
 	}
@@ -126,6 +112,9 @@ void ompl::control::SMR::BuildSMR(int num_samples, int num_transitions){
 			auto icontrol = state_list[i]->control->as<ompl::control::DiscreteControlSpace::ControlType>(); // cast control to desired type
 			icontrol->value = 0;
 			GetTransisions(state_list[i], state_list[i]->control, num_transitions);
+			icontrol->value = 1;
+			GetTransisions(state_list[i], state_list[i]->control, num_transitions);
+			exit(1);
 	}
 }
 
@@ -135,7 +124,7 @@ ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminati
 {
 
 	int NUM_SAMPLES = 1000;
-	int NUM_TRANSITIONS = 20;
+	int NUM_TRANSITIONS = 100;
 	double dist = 0.1;
 	checkValidity();
 	base::Goal *goal = pdef_->getGoal().get();
