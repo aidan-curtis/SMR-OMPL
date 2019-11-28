@@ -111,6 +111,8 @@ namespace ompl
 
                 // Reachable set R(q)
                 std::vector<Node*> state_control_1;
+
+                double transition_probability;
             };
 
             /** \brief Free the memory allocated by this planner */
