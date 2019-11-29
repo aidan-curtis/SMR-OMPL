@@ -140,7 +140,7 @@ int ompl::control::SMR::GeneratePath(){
 ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminationCondition &ptc)
 {
 
-	int NUM_SAMPLES = 1000;
+	int NUM_SAMPLES = 5000;
 	int NUM_TRANSITIONS = 20;
 	double dist = 0.1;
 	checkValidity();
@@ -298,6 +298,7 @@ ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminati
 	if (nn_)
 		nn_->list(nodes);
 
+	std::ofstream fout("sampled_points.txt");
 
 	// Set the intitial state to the start state
 	Node *current_node = nodes[0];
@@ -332,17 +333,23 @@ ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminati
 			break;
 		}
 
+		
+
+		
+
 		if(transition_value_u0>transition_value_u1){
 			auto compound_state = new_node_u0->state->as<ompl::base::CompoundState>();
 			const ompl::base::RealVectorStateSpace::StateType* r2;
 			r2 = compound_state->as<ompl::base::RealVectorStateSpace::StateType>(0);
 			cout<<r2->values[0]<<","<<r2->values[1]<<","<<0<<endl;
+			fout<<r2->values[0]<<","<<r2->values[1]<<","<<0<<endl;
 			current_node = new_node_u0;
 		} else{
 			auto compound_state = new_node_u1->state->as<ompl::base::CompoundState>();
 			const ompl::base::RealVectorStateSpace::StateType* r2;
 			r2 = compound_state->as<ompl::base::RealVectorStateSpace::StateType>(0);
 			cout<<r2->values[0]<<","<<r2->values[1]<<","<<1<<endl;
+			fout<<r2->values[0]<<","<<r2->values[1]<<","<<1<<endl;
 			current_node = new_node_u1;
 		}
 
@@ -353,6 +360,7 @@ ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminati
 
 	OMPL_INFORM("%s: Starting planning with %u states already in datastructure", getName().c_str(), nn_->size());
 	return {solution_found, solution_found};
+	fout.close();
 }
 
 void ompl::control::SMR::getPlannerData(base::PlannerData &data) const
