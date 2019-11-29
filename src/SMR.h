@@ -145,9 +145,11 @@ namespace ompl
             Node *lastGoalNode_{nullptr};
 
 
+            std::multimap<Node*, double> values; 
             int selectReachableNode(const Node* qnear, const Node* qrand);
             void BuildSMR(int num_samples, int num_transitions);
             void GetTransisions(Node *start_state, Control *control, int num_transitions);
+            int GeneratePath();
 
 
         };

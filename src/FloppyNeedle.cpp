@@ -261,14 +261,8 @@ ompl::control::SimpleSetupPtr createFloppy(std::vector<Rectangle> &  obstacles )
 	auto goal(std::make_shared<Environment1Goal>(ssptr->getSpaceInformation()));
 	ssptr->setGoal(goal);
 
-	
-	
 	return ssptr;
 }
-
-
-
-
 
 
 void planFloppy(ompl::control::SimpleSetupPtr & ss)
@@ -285,11 +279,11 @@ void planFloppy(ompl::control::SimpleSetupPtr & ss)
 	if (solved)
 	{
 		std::cout << "Found solution:" << std::endl;
-
-		std::ofstream fout("car_path.txt");
+		
+		// std::ofstream fout("car_path.txt");
 		// print the path to screen
-		ss->getSolutionPath().printAsMatrix(fout);
-		fout.close();
+		// ss->getSolutionPath().printAsMatrix(fout);
+		// fout.close();
 	} 
 	else
 	{
