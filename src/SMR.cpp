@@ -294,7 +294,6 @@ ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminati
 	// std::vector<Node *> solution_path;
 
 
-
 	std::vector<Node *> nodes;
 	if (nn_)
 		nn_->list(nodes);
@@ -340,7 +339,7 @@ ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminati
 			cout<<r2->values[0]<<","<<r2->values[1]<<","<<0<<endl;
 			current_node = new_node_u0;
 		} else{
-			auto compound_state = new_node_u0->state->as<ompl::base::CompoundState>();
+			auto compound_state = new_node_u1->state->as<ompl::base::CompoundState>();
 			const ompl::base::RealVectorStateSpace::StateType* r2;
 			r2 = compound_state->as<ompl::base::RealVectorStateSpace::StateType>(0);
 			cout<<r2->values[0]<<","<<r2->values[1]<<","<<1<<endl;
