@@ -1,3 +1,5 @@
+NOTE: We accidentally made this repository public at first, until we realized that somebody from Rice forked it (https://github.com/MyClean1998/SMR-OMPL) after which we made it private. 
+
 # SMR-OMPL
 An OMPL implementation of stochastic motion roadmap
 
