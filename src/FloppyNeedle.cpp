@@ -153,7 +153,23 @@ public:
 };
 
 
-void makeBones(std::vector<Rectangle> &  obstacles )
+
+void makeBones2(std::vector<Rectangle> &  obstacles){
+	Rectangle obstacle1;
+	obstacle1.x = 3;
+	obstacle1.y = 1;
+	obstacle1.width = 2;
+	obstacle1.height = 7;
+	obstacles.push_back(obstacle1);
+	 
+	Rectangle obstacle2;
+	obstacle2.x = 6;
+	obstacle2.y = 3;
+	obstacle2.width = 3;
+	obstacle2.height = 3;
+	obstacles.push_back(obstacle2);
+}
+void makeBones(std::vector<Rectangle> &  obstacles)
 {
 	Rectangle obstacle1;
 	obstacle1.x = 1;
@@ -271,26 +287,7 @@ void planFloppy(ompl::control::SimpleSetupPtr & ss)
 
 	ompl::base::PlannerPtr planner(new ompl::control::SMR(ss->getSpaceInformation()));
 	ss->setPlanner(planner);
-   
-	// attempt to solve the problem within one second of planning time
-	ompl::base::PlannerStatus solved = ss->solve(100.0);
-
-	std::cout<<"got past solve()"<<std::endl;
-
-	if (solved)
-	{
-		std::cout << "Found solution:" << std::endl;
-		
-		// std::ofstream fout("car_path.txt");
-		// print the path to screen
-		// ss->getSolutionPath().printAsMatrix(fout);
-		// fout.close();
-	} 
-	else
-	{
-		std::cout << "No solution found" << std::endl;
-	}
-	
+	ss->solve(1000.0);
 }
 
 
@@ -298,7 +295,7 @@ void planFloppy(ompl::control::SimpleSetupPtr & ss)
 int main(int /* argc */, char ** /* argv */)
 {
 	std::vector<Rectangle> obstacles;
-	makeBones(obstacles);
+	makeBones2(obstacles);
 	ompl::control::SimpleSetupPtr ss = createFloppy(obstacles);
 	planFloppy(ss);
 	return 0;

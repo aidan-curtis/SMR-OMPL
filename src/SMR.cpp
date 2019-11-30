@@ -75,7 +75,7 @@ void ompl::control::SMR::GetTransisions(Node *start_state, Control *control, int
 
 	for (int m = 0; m < num_transitions; m += 1){
 		ompl::base::State *prop_state = si_->allocState();
-		auto non_collision = siC_->propagateWhileValid(start_state->state, control, 1, prop_state);
+		bool non_collision = siC_->propagateWhileValid(start_state->state, control, 1, prop_state);
 		auto *new_node = new Node(siC_);
 		new_node->state = prop_state;
 
@@ -91,15 +91,17 @@ void ompl::control::SMR::GetTransisions(Node *start_state, Control *control, int
 		
 		
 		
-
-		if(control->as<ompl::control::DiscreteControlSpace::ControlType>()->value == 0) {
-			// cout<<r2->values[0]<<","<<r2->values[1]<<","<<0<<endl;
-			// fout<<r2->values[0]<<","<<r2->values[1]<<","<<0<<endl;
-			start_state->state_control_0.push_back(neighbor);
+		if(non_collision){
+			if(control->as<ompl::control::DiscreteControlSpace::ControlType>()->value == 0) {
+				// cout<<r2->values[0]<<","<<r2->values[1]<<","<<0<<endl;
+				// fout<<r2->values[0]<<","<<r2->values[1]<<","<<0<<endl;
+				start_state->state_control_0.push_back(neighbor);
+			} else {
+				// cout<<r2->values[0]<<","<<r2->values[1]<<","<<1<<endl;
+				// fout<<r2->values[0]<<","<<r2->values[1]<<","<<1<<endl;
+				start_state->state_control_1.push_back(neighbor);
+			}
 		} else {
-			// cout<<r2->values[0]<<","<<r2->values[1]<<","<<1<<endl;
-			// fout<<r2->values[0]<<","<<r2->values[1]<<","<<1<<endl;
-			start_state->state_control_1.push_back(neighbor);
 		}
 	}
 	
@@ -140,7 +142,7 @@ int ompl::control::SMR::GeneratePath(){
 ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminationCondition &ptc)
 {
 
-	int NUM_SAMPLES = 5000;
+	int NUM_SAMPLES = 50000;
 	int NUM_TRANSITIONS = 20;
 	double dist = 0.1;
 	checkValidity();
@@ -283,7 +285,6 @@ ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminati
 	}
 
 	bool solution_found = false;
-	cout<<"Num iterations: "<<iteration<<endl;
 	for (auto itr = values.find(state_list[0]); itr != values.end(); itr++){
 		solution_found = true;
 		break;
@@ -298,70 +299,69 @@ ompl::base::PlannerStatus ompl::control::SMR::solve(const base::PlannerTerminati
 	if (nn_)
 		nn_->list(nodes);
 
-	std::ofstream fout("sampled_points.txt");
+	int b = 0;
+	for(b = 0; b<10; b+=1){
+		// Set the intitial state to the start state
+		Node *current_node = nodes[0];
+		// base::Goal *goal = pdef_->getGoal().get();
 
-	// Set the intitial state to the start state
-	Node *current_node = nodes[0];
-	// base::Goal *goal = pdef_->getGoal().get();
-	cout << "Searching for solution path" << endl;
-	while(!goal->isSatisfied(current_node->state, &dist)){
+		int iter = 0;
+		while(!goal->isSatisfied(current_node->state, &dist)){
 
-		auto icontrol = current_node->control->as<ompl::control::DiscreteControlSpace::ControlType>(); // cast control to desired type
+			auto icontrol = current_node->control->as<ompl::control::DiscreteControlSpace::ControlType>(); // cast control to desired type
 
-		// Get the value for propogating action 0
-		ompl::base::State *prop_state_u0 = si_->allocState();
-		icontrol->value = 0;
-		auto non_collision_u0 = siC_->propagateWhileValid(current_node->state, current_node->control, 1, prop_state_u0);
-		auto *new_node_u0 = new Node(siC_);
-		new_node_u0->state = prop_state_u0;
-		Node *neighbor_u0 = nn_->nearest(new_node_u0);
-		double transition_value_u0 = 0;
-		for (auto itr = values.find(neighbor_u0); itr != values.end(); itr++){
-			transition_value_u0 = double(itr->second);
-			break;
+			// Get the value for propogating action 0
+			ompl::base::State *prop_state_u0 = si_->allocState();
+			icontrol->value = 0;
+			auto non_collision_u0 = siC_->propagateWhileValid(current_node->state, current_node->control, 1, prop_state_u0);
+			auto *new_node_u0 = new Node(siC_);
+			new_node_u0->state = prop_state_u0;
+			Node *neighbor_u0 = nn_->nearest(new_node_u0);
+			double transition_value_u0 = 0;
+			for (auto itr = values.find(neighbor_u0); itr != values.end(); itr++){
+				transition_value_u0 = double(itr->second);
+				break;
+			}
+			// Get the value for propagating action 1
+			ompl::base::State *prop_state_u1 = si_->allocState();
+			icontrol->value = 1;
+			auto non_collision_u1 = siC_->propagateWhileValid(current_node->state, current_node->control, 1, prop_state_u1);
+			auto *new_node_u1 = new Node(siC_);
+			new_node_u1->state = prop_state_u1;
+			Node *neighbor_u1 = nn_->nearest(new_node_u1);
+			double transition_value_u1 = 0;
+			for (auto itr = values.find(neighbor_u1); itr != values.end(); itr++){
+				transition_value_u1 = double(itr->second);
+				break;
+			}
+
+			if(transition_value_u0>transition_value_u1) {
+				auto compound_state = new_node_u0->state->as<ompl::base::CompoundState>();
+				const ompl::base::RealVectorStateSpace::StateType* r2;
+				r2 = compound_state->as<ompl::base::RealVectorStateSpace::StateType>(0);
+				cout<<r2->values[0]<<","<<r2->values[1]<<","<<0<<endl;
+				current_node = new_node_u0;
+			} else {
+				auto compound_state = new_node_u1->state->as<ompl::base::CompoundState>();
+				const ompl::base::RealVectorStateSpace::StateType* r2;
+				r2 = compound_state->as<ompl::base::RealVectorStateSpace::StateType>(0);
+				cout<<r2->values[0]<<","<<r2->values[1]<<","<<1<<endl;
+				current_node = new_node_u1;
+			}
+			iter += 1;
+			if(iter >= 300){
+				break;
+			}
+			// Select the action with the higher value and propagate it
 		}
-		// Get the value for propagating action 1
-		ompl::base::State *prop_state_u1 = si_->allocState();
-		icontrol->value = 1;
-		auto non_collision_u1 = siC_->propagateWhileValid(current_node->state, current_node->control, 1, prop_state_u1);
-		auto *new_node_u1 = new Node(siC_);
-		new_node_u1->state = prop_state_u1;
-		Node *neighbor_u1 = nn_->nearest(new_node_u1);
-		double transition_value_u1 = 0;
-		for (auto itr = values.find(neighbor_u1); itr != values.end(); itr++){
-			transition_value_u1 = double(itr->second);
-			break;
-		}
-
-		
-
-		
-
-		if(transition_value_u0>transition_value_u1){
-			auto compound_state = new_node_u0->state->as<ompl::base::CompoundState>();
-			const ompl::base::RealVectorStateSpace::StateType* r2;
-			r2 = compound_state->as<ompl::base::RealVectorStateSpace::StateType>(0);
-			cout<<r2->values[0]<<","<<r2->values[1]<<","<<0<<endl;
-			fout<<r2->values[0]<<","<<r2->values[1]<<","<<0<<endl;
-			current_node = new_node_u0;
-		} else{
-			auto compound_state = new_node_u1->state->as<ompl::base::CompoundState>();
-			const ompl::base::RealVectorStateSpace::StateType* r2;
-			r2 = compound_state->as<ompl::base::RealVectorStateSpace::StateType>(0);
-			cout<<r2->values[0]<<","<<r2->values[1]<<","<<1<<endl;
-			fout<<r2->values[0]<<","<<r2->values[1]<<","<<1<<endl;
-			current_node = new_node_u1;
-		}
-
-		// Select the action with the higher value and propagate it
+		cout << endl;
 	}
 
-	cout << "Solution Found" << endl;
 
 	OMPL_INFORM("%s: Starting planning with %u states already in datastructure", getName().c_str(), nn_->size());
 	return {solution_found, solution_found};
-	fout.close();
 }
+
 
 void ompl::control::SMR::getPlannerData(base::PlannerData &data) const
 {
